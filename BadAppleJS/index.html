@@ -1,0 +1,484 @@
+<HTML>
+<HEAD>
+<TITLE>Bad apple The Game:The movie</TITLE>
+<link rel="icon" type="image/png" href="icon.png">
+<style>
+
+body {
+	background-color:#202020;
+	color:white;
+}
+
+.screen{
+	display:flex;
+	flex-direction: row;
+}
+
+.game{
+	align-self: center;
+	float: center;
+}
+
+.helptext{
+	border-bottom: 2px dotted white;
+}
+
+.helptext .tooltip{
+  visibility: hidden;
+  position:absolute;
+  background-color:#555555;
+  text-align: left;
+  border-radius: 3px;
+  padding: 3px 3px;
+  right:0%;
+  margin-top: 20px;
+}
+
+.helptext:hover .tooltip{
+	visibility: visible;
+}
+
+.UI1{
+	
+	flex-direction:row;
+	position:absolute;
+	left:1px;
+	top:50px;
+	opacity: 0.5;
+	pointer-events: none;
+	display:none;
+}
+.heart1{
+	pointer-events: none;
+}
+.heart2{
+	position:relative;
+	top:-12px;
+	left:-8px;
+	pointer-events: none;
+}
+.heart3{
+	position:relative;
+	top:-24px;
+	left:-16px;
+	pointer-events: none;
+}
+
+.difMenu{
+	float:left;
+	position:fixed;
+	inset-block-start:80px;
+	box-shadow: 0px 0px 10px 1px #6600AA,
+	0px 0px 1px #6600AA;
+	background: rgba(0,0,0,0.4);
+	border:none;
+    border-radius:5px;
+	
+}
+
+.difOption {
+}
+
+.uiHealth{
+	background-image: linear-gradient(0deg, rgba(0,0,0,1), rgba(0,0,0,0.2));
+	height: 44px;
+	width: 140px;
+	rotate: -7deg;
+	position:absolute;
+	left:10px;
+	top:150px;
+	font-size:42px;
+	text-align: center;
+	opacity: 0.5;
+	pointer-events: none;
+	display:none;
+}
+.uiLives{
+	background-image: linear-gradient(0deg, rgba(0,0,0,1), rgba(0,0,0,0.2));
+	height: 90px;
+	width: 290px;
+	rotate: -7deg;
+	position:absolute;
+	left:0px;
+	top:-10px;
+	font-size:42px;
+	opacity: 0.5;
+	pointer-events: none;
+	display:none;
+}
+</style>
+
+
+<script>
+
+
+let ctx;
+let canvas;
+
+let cX;
+let cY;
+
+function frameTimer() {
+	//Assets loading
+	const bgMusic = new Audio("assets/audio/BadApple.mp3");
+	const dmgSFX = new Audio("assets/audio/spark.mp3");
+	const lifeSFX = new Audio("assets/audio/glass.mp3");
+	const dedSFX = new Audio("assets/audio/death.mp3");
+	//Game var def
+	var health = 1000;
+	var hpCap = 1000;
+	var score = 0;
+	var life = 3;
+	var dmgMult = 20;
+	var healMult = 2;
+	var prevTick = -1;
+		//iframes definitions, both must be same size
+		const lowerBound = [0,1470,2110,4565,4590,5420,5885,5960,6512]
+		const higherBound =[70,1490,2120,4577,4605,5500,5920,5965,6599]
+		//if(tick<70||(tick<1486&&tick>1477)||(tick<4577&&tick>4565)||(tick<4605&&tick>4590)||(tick<5500&&tick>5420)||(tick<5920&&tick>5885)||tick>6512){
+	//Game core control vars
+	let startTime;
+	let timerId;
+	let pixData;
+	let colors;
+	let textSize;
+	var cIframe = 0;
+	//DOM elements
+	const btn = document.getElementById("startbtn");
+	const livesUI= document.getElementById("livesPanel");
+	const menu = document.getElementById("mainMenu");
+	const uiCtrl = document.getElementById("GameUI");
+	var cheart= document.getElementById("heart3");
+	const difMenu = document.getElementById("difSelect");
+	const loadbtn = document.getElementById("preloadbtn");
+	const uiHP = document.getElementById("uiHP");
+	const uiLi = document.getElementById("uiLi");
+	//Configs
+	const dif = parseInt(document.querySelector('input[name=dificulty]:checked').value);
+	const cursorType = document.querySelector('input[name=hardwareCursor]').checked;
+	const reverseMode = document.querySelector('input[name=reverseMode]').checked;
+	const textUI = document.querySelector('input[name=textUI]').checked;
+	const soundIsOff = document.querySelector('input[name=dmgSound]').checked;
+	const cursorHPIsOff = document.querySelector('input[name=cursorHP]').checked;
+	//Renderers/Images
+	const drawFrame = new Image();
+	const hitbox = new Image();
+	hitbox.src= "/assets/hitbox.png";
+	//Show UI
+
+	if(textUI==true){
+		uiCtrl.style.display="flex";
+		
+	}else{
+		uiCtrl.style.display="none";
+		livesUI.style.display="flex";
+		cheart.style.display="flex";				//It was preloaded heart3 when we defined it
+		cheart= document.getElementById("heart2");
+		cheart.style.display="flex";
+		uiHP.style.display="flex";
+		uiLi.style.display="flex";
+		uiHP.innerHTML="100/100";
+		uiLi.style.width=290;
+		uiLi.style.height=90;
+	}
+	if (cursorType ==true){
+		canvas.style.cursor = "crosshair";
+	}else{
+		canvas.style.cursor = "none";
+	}
+	//hide menu
+	menu.style.display="none";
+	btn.style.display="none";
+	difMenu.style.display="none";
+	loadbtn.style.display="none";
+	//Canvas/renderers configuration
+	if(window.innerHeight>window.innerWidth){
+		
+		canvas.width=window.innerWidth;
+		canvas.height=canvas.width*0.75;
+	}else{
+		canvas.height=window.innerHeight*0.9;
+		canvas.width=canvas.height*1.33333333;
+	}
+	cX = canvas.width/2;
+	cY = canvas.height/2;
+	ctx.font = "16px bold Courier New";
+	ctx.textBaseline = "middle";
+	ctx.fillStyle = "#FF1465";
+	//difficulty setup	
+	switch (dif){
+		case 1:
+			dmgMult = 16;////1000 HP lost on 2 Seconds
+			healMult = 3;
+			hpCap = 1500;
+			health=hpCap;
+			uiHP.innerHTML="150/150";
+		break;
+		case 2:
+			dmgMult = 22;////1000 HP lost on 1.5 Seconds
+			healMult = 2;
+		break;
+		case 3:
+			dmgMult = 33;//1000 HP lost on 1 Second
+			healMult = 2;
+		break;
+		case 4:
+			dmgMult = 37;//1000 HP lost on 0.9 Seconds
+			healMult = 1;
+		break;
+		case 5:
+			livesUI.style.display="none";
+			uiHP.innerHTML="600/600";
+			dmgMult = 33;//1000 HP lost on 1.66 Seconds
+			hpCap = 6000;//Death in 6s
+			health=hpCap;
+			life=1;
+			healMult = 0;
+		break;
+	}
+	//and finally start the music, and the clock
+	bgMusic.play();
+    startTime = Date.now();
+	//
+    function updateTimer() {
+	//	GAME LOGIC STARTS HERE
+		dotick: {	//Everything in this block runs at 30FPS<
+			const now = Date.now();
+			const currTime = Math.max(0, now - startTime);
+			const tick = Math.floor(currTime*0.03); //30FPS,30=1 sec, 60=2s, 90=3s etc...
+			if(prevTick==tick) break dotick;//cut tick if we are runing faster than 30FPS
+			prevTick=tick;	//log that we rendered that frame already
+				
+				//draw background
+				drawFrame.src="assets/bapple/frame_"+tick+".png";
+				ctx.drawImage(drawFrame, 0, 0,canvas.width,canvas.height);
+				//
+				//IFRAME handling
+				if(tick>=lowerBound[cIframe]&&tick<=higherBound[cIframe]){
+					
+					uiCtrl.innerHTML = "Lives:"+life+" / HP:"+Math.trunc(health/10)+"   (invulnerable)";
+					textSize=ctx.measureText("No damage : "+(higherBound[cIframe]-tick));
+					ctx.fillText("No damage : "+(higherBound[cIframe]-tick), cX-Math.trunc(textSize.width/2), cY+16);
+					
+				}
+				else{
+					if(tick>higherBound[cIframe]) cIframe=cIframe+1;
+					
+					//Normal game logic
+					pixData = ctx.getImageData(cX, cY, 1, 1).data;
+					if ((pixData[0]<64&&reverseMode==false)||(pixData[0]>64&&reverseMode==true)){ //if pixel is at least 75% black / 25% white for inverse mode
+						if(soundIsOff==false) dmgSFX.play();	
+						health = health - dmgMult;
+						score=score-dmgMult;
+						if (health<0){
+							if(life<=1){//If that was the last life, finish
+								//Stop music and reload + Death sound
+								bgMusic.pause();
+								bgMusic.load();
+								dedSFX.play();
+								//Show main menu again and hide game UI
+								canvas.style.cursor = "auto";
+								menu.style.display="inline-flex";
+								btn.style.display="inline-flex";
+								livesUI.style.display="none";
+								uiCtrl.style.display="flex";
+								difMenu.style.display="inline-table";
+								loadbtn.style.display="inherit";
+								uiHP.style.display="none";
+								//Report score
+								uiCtrl.innerHTML = "Time survived "+Math.trunc((tick/30)/60)+"m "+Math.trunc((tick/30)%60)+"s / 3m 39s ";
+								return;
+							}else{
+								lifeSFX.play();
+								cheart = document.getElementById("heart"+life);
+								cheart.style.display="none";
+								life=life-1;
+								health=hpCap;
+								uiLi.style.width=290-((3-life)*90);
+								uiLi.style.height=90+((3-life)*5);
+							}
+						}
+					}else if (health < hpCap){//Safe/Heal
+						health=health+healMult;	
+					}
+					if(textUI==true){
+						uiCtrl.innerHTML = "Lives:"+life+" / HP:"+Math.trunc(health/10);
+					}else{
+						uiHP.innerHTML = Math.trunc(health/10)+"/"+Math.trunc(hpCap/10);	
+					}
+				}
+				
+			//
+			//Debug stuff
+			//const seconds = Math.floor(currTime*0.001);
+			//console.log('realtime='+seconds+' frame='+tick);
+			//console.log("Lives:"+life+"  HP:"+health);
+			//
+			
+		}//30 FPS block ends here
+		
+        if (prevTick < 6574) {//Everything inside here runs at max framerate (Capped to 60 defined by the anim timer)
+			if(cursorType==false) ctx.drawImage(hitbox, cX-32, cY-32 ,64,64);
+			if(health<hpCap-1&&cursorHPIsOff==false){
+			textSize=ctx.measureText(Math.trunc(health/10));
+			ctx.fillText(Math.trunc(health/10), cX-Math.trunc(textSize.width/2), cY-16);
+			}
+            timerId = requestAnimationFrame(updateTimer);
+        } else {//End sequence, run at the end once
+			if(Math.trunc(score/dmgMult)>-89){
+				var finalScore = Math.trunc(score/10) + ((life*1000)*(dif*dif)) + ((health)*(dif*dif)) + 10000;
+				console.log(finalScore);
+				uiCtrl.innerHTML = "HP lost = "+Math.trunc(score/10)+" : Lives bonus : "+life+"*1000*Difficulty bonus ("+dif*dif+") = "+(life*1000)*(dif*dif)+" ; HP bonus : "+health+ "*Difficulty bonus ("+dif*dif+") = "+ (health)*(dif*dif)+" : Almost perfect = 10000 : Final score = "+finalScore+"<br>";
+
+			}else{
+				var finalScore = Math.trunc(score/10) + ((life*1000)*(dif*dif)) + ((health)*(dif*dif));
+				uiCtrl.innerHTML = "HP lost = "+Math.trunc(score/10)+" : Lives bonus : "+life+"*1000*Difficulty bonus ("+dif*dif+") = "+(life*1000)*(dif*dif)+" ; HP bonus = "+health+ "*Difficulty bonus ("+dif*dif+") = "+ (health)*(dif*dif)+" : Final score = "+finalScore+"<br>";
+			
+			}
+		
+			bgMusic.pause();
+			bgMusic.load();
+			btn.style.display="inline-flex";
+			canvas.style.cursor = "auto";
+			menu.style.display="inline-flex";
+			livesUI.style.display="none";
+			uiCtrl.style.display="flex";
+			difMenu.style.display="inline-table";
+			loadbtn.style.display="inherit";
+			uiHP.style.display="none";
+        }
+    }
+
+    updateTimer();
+}
+
+
+function startClock(){
+	//await loadAssets();
+	canvas = document.getElementById("gameFrame");
+	ctx = document.getElementById("gameFrame").getContext("2d");
+	frameTimer();
+	
+}
+
+function loadAssets(){
+	var c=0;
+	var l=0;
+	const percentage = document.getElementById("loadPercent");
+	percentage.style.display= "initial";
+	const btn = document.getElementById("preloadbtn");
+	btn.disabled=true;
+	do{
+		
+		new Promise((resolve, reject) => {
+            const image = new Image();                    
+            image.onload = e => {
+				resolve(image);
+				l=l+1;
+				percentage.innerHTML = Math.trunc((l*100)/6574)+"%";
+            }
+            image.onerror = e => {
+                reject(Error("failed to load "+image.src))
+            }
+            image.src = "assets/bapple/frame_"+c+".png";
+			
+        })
+		c=c+1;
+		
+	}while(c<6574);
+
+}
+
+function getCursor(e){
+	canvas = document.getElementById("gameFrame");
+	rect = canvas.getBoundingClientRect();
+    cX=e.clientX- rect.left;
+    cY=e.clientY- Math.floor(rect.top);
+
+}
+
+
+window.onload = async function startup(){
+	iniGame();
+}
+
+async function iniGame(){
+	canvas = document.getElementById("gameFrame");
+	ctx = document.getElementById("gameFrame").getContext("2d");
+	console.log(window.innerHeight);
+	if(window.innerHeight<360){
+	var textUI = document.getElementById("GameUI");
+	textUI.innerHTML="WARNING ,Your display/window may have issues due to its size!<br>Is recomended that your window is at least 480wx360h";
+	}
+	var canvasH=window.innerHeight*0.9;
+	var canvasW=canvasH*1.33333333;
+	canvas.width=canvasW;
+	canvas.height=canvasH;
+	console.log(canvas.height);
+			new Promise((resolve, reject) => {
+            const image2 = new Image();                    
+            image2.onload = e => {
+				resolve(image2);
+            }
+            image2.onerror = e => {
+                reject(Error("failed to load "+image2.src))
+            }
+            image2.src = "assets/hitbox.png";
+        })
+}
+
+</script>
+
+</HEAD>
+<BODY>
+<source src="assets/audio/BadApple.mp3" />
+<source src="assets/audio/spark.mp3" />
+<source src="assets/audio/glass.mp3" />
+<source src="assets/audio/death.mp3" />
+
+<div class="helptext" style="float:right" ><button id="preloadbtn" style="float:right" onclick="loadAssets()">Preload assets</button><span class="tooltip">Can help if the game is lagging<br>May take a while to load<br>Specialy on HDDs</span></div>
+<div id="loadPercent" style="float:right;display:none">0%</div>
+<button id="startbtn" onclick="startClock()">Start</button><div style="float:left;" id="GameUI">Avoid touching the black parts of the video with your cursor</div>
+
+<div id="mainMenu" style="display: inline-flex;text-align:right">
+
+<form>&nbsp;
+
+<input type="checkbox" id="cursorCtrl" name="hardwareCursor"><label for="cursorCtrl">Use OS cursor?</label>
+<input type="checkbox" id="inverseMode" name="reverseMode">
+<label for="inverseMode">Inverse mode (NOT playtested)</label>
+<input type="checkbox" id="soundCtrl" name="dmgSound"><label for="dmgSound">Disable damage sfx</label>
+<input type="checkbox" id="tuiCtrl" name="textUI"><label for="textUI">Enable old Text HUD</label>
+<input type="checkbox" id="cursorHP" name="cursorHP"><label for="textUI">Disable HP display on cursor</label>
+
+</form>
+
+</div>
+
+<div id="livesPanel" class="container UI1" ><div id="uiLi" class="uiLives"></div><image id="heart1" class="item heart1" src="assets/heart.png" /><image id="heart2" class="item heart2" src="assets/heart.png" /><image id="heart3" class="item heart3" src="assets/heart.png" /></div>
+<br>
+<div class="uiHealth" id="uiHP">100</div>
+
+<div class="container screen">
+
+<canvas style="padding-left: 0;padding-right: 0;margin-left: auto;margin-right: auto;display: block;" class="item game" id="gameFrame" onmousemove="getCursor(event)" ></canvas>
+
+<form class="difMenu" id="difSelect">
+
+  <input class="difOption" type="radio" id="easy" name="dificulty" value="1">
+  <label for="easy">Easy</label><br>
+  <input class="difOption" type="radio" id="norm" name="dificulty" value="2" checked="checked">
+  <label for="norm">Normal</label><br>
+  <input type="radio" id="hard" name="dificulty" value="3">
+  <label class="difOption" for="hard">Hard (original)</label><br>
+  <input type="radio" id="lunatic" name="dificulty" value="4">
+  <label class="difOption" for="lunatic">Lunatic</label><br>
+  <input type="radio" id="extra" name="dificulty" value="5">
+  <label class="difOption" for="extra">Extra</label><br>
+
+</form>
+
+</div>
+
+</BODY>
+</HTML>
