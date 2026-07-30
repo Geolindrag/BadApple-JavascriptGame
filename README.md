@@ -2,7 +2,8 @@
 A Bad apple game in javascript where you try to keep the cursor in the white spots
 
 This game due to the usage of canvases, Requires to be launched on a local server, or it will give an "Insecure operation" error
-In the releases folder its included a minimal http server so you can run the game
+
+In the releases folder has included a minimal http server so you can run the game
 
 ## Running the game
 1. To start it, run "BasicHTTPServer.exe" (or run in the terminal `./BasicHTTPServer` on linux) it will open a command prompt that will run the server, and your browser in the webpage `http://localhost:8000/index.html`
