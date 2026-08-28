@@ -253,7 +253,7 @@ function frameTimer() {
 			tick = Math.floor(currTime*0.03); //30FPS,30=1 sec, 60=2s, 90=3s etc...
 			if(prevTick==tick) break dotick;//cut tick if we are runing faster than 30FPS
 			prevTick=tick;	//log that we rendered that frame already
-				console.log(tick);
+				//console.log(tick);
 				//draw background
 				ctx.drawImage(vid, 0, 0,canvas.width,canvas.height);
 				//
