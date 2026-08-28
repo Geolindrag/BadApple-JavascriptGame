@@ -19,25 +19,6 @@ body {
 	float: center;
 }
 
-.helptext{
-	border-bottom: 2px dotted white;
-}
-
-.helptext .tooltip{
-  visibility: hidden;
-  position:absolute;
-  background-color:#555555;
-  text-align: left;
-  border-radius: 3px;
-  padding: 3px 3px;
-  right:0%;
-  margin-top: 20px;
-}
-
-.helptext:hover .tooltip{
-	visibility: visible;
-}
-
 .UI1{
 	
 	flex-direction:row;
@@ -106,6 +87,14 @@ body {
 	pointer-events: none;
 	display:none;
 }
+
+.GameScreen{
+	padding-left: 0;
+	padding-right: 0;
+	margin-left: auto;
+	margin-right: auto;
+	display: block;
+}
 </style>
 
 
@@ -114,21 +103,28 @@ body {
 
 let ctx;
 let canvas;
+let rect;
 
 let cX;
 let cY;
 
+let life;
+let tick;
+let health;
+let victory;
+
 function frameTimer() {
 	//Assets loading
-	const bgMusic = new Audio("assets/audio/BadApple.mp3");
+	//const bgMusic = new Audio("assets/audio/BadApple.mp3");
 	const dmgSFX = new Audio("assets/audio/spark.mp3");
 	const lifeSFX = new Audio("assets/audio/glass.mp3");
 	const dedSFX = new Audio("assets/audio/death.mp3");
 	//Game var def
-	var health = 1000;
+	health = 1000;
 	var hpCap = 1000;
 	var score = 0;
-	var life = 3;
+	life = 3;
+	victory = false;
 	var dmgMult = 20;
 	var healMult = 2;
 	var prevTick = -1;
@@ -150,9 +146,9 @@ function frameTimer() {
 	const uiCtrl = document.getElementById("GameUI");
 	var cheart= document.getElementById("heart3");
 	const difMenu = document.getElementById("difSelect");
-	const loadbtn = document.getElementById("preloadbtn");
 	const uiHP = document.getElementById("uiHP");
 	const uiLi = document.getElementById("uiLi");
+	vid = document.getElementById("videoPanel");
 	//Configs
 	const dif = parseInt(document.querySelector('input[name=dificulty]:checked').value);
 	const cursorType = document.querySelector('input[name=hardwareCursor]').checked;
@@ -190,7 +186,6 @@ function frameTimer() {
 	menu.style.display="none";
 	btn.style.display="none";
 	difMenu.style.display="none";
-	loadbtn.style.display="none";
 	//Canvas/renderers configuration
 	if(window.innerHeight>window.innerWidth){
 		
@@ -202,6 +197,7 @@ function frameTimer() {
 	}
 	cX = canvas.width/2;
 	cY = canvas.height/2;
+	rect = canvas.getBoundingClientRect();
 	ctx.font = "16px bold Courier New";
 	ctx.textBaseline = "middle";
 	ctx.fillStyle = "#FF1465";
@@ -229,15 +225,24 @@ function frameTimer() {
 		case 5:
 			livesUI.style.display="none";
 			uiHP.innerHTML="600/600";
-			dmgMult = 33;//1000 HP lost on 1.66 Seconds
+			dmgMult = 33;//1000 HP lost on 1 Second
 			hpCap = 6000;//Death in 6s
+			health=hpCap;
+			life=1;
+			healMult = 0;
+		break;
+		case 6:
+			livesUI.style.display="none";
+			uiHP.innerHTML="400/400";
+			dmgMult = 33;//1000 HP lost on 1 Second
+			hpCap = 4000;//Death in 4s, Forces a perfect
 			health=hpCap;
 			life=1;
 			healMult = 0;
 		break;
 	}
 	//and finally start the music, and the clock
-	bgMusic.play();
+	vid.play();
     startTime = Date.now();
 	//
     function updateTimer() {
@@ -245,13 +250,12 @@ function frameTimer() {
 		dotick: {	//Everything in this block runs at 30FPS<
 			const now = Date.now();
 			const currTime = Math.max(0, now - startTime);
-			const tick = Math.floor(currTime*0.03); //30FPS,30=1 sec, 60=2s, 90=3s etc...
+			tick = Math.floor(currTime*0.03); //30FPS,30=1 sec, 60=2s, 90=3s etc...
 			if(prevTick==tick) break dotick;//cut tick if we are runing faster than 30FPS
 			prevTick=tick;	//log that we rendered that frame already
-				
+				console.log(tick);
 				//draw background
-				drawFrame.src="assets/bapple/frame_"+tick+".png";
-				ctx.drawImage(drawFrame, 0, 0,canvas.width,canvas.height);
+				ctx.drawImage(vid, 0, 0,canvas.width,canvas.height);
 				//
 				//IFRAME handling
 				if(tick>=lowerBound[cIframe]&&tick<=higherBound[cIframe]){
@@ -273,20 +277,7 @@ function frameTimer() {
 						if (health<0){
 							if(life<=1){//If that was the last life, finish
 								//Stop music and reload + Death sound
-								bgMusic.pause();
-								bgMusic.load();
-								dedSFX.play();
-								//Show main menu again and hide game UI
-								canvas.style.cursor = "auto";
-								menu.style.display="inline-flex";
-								btn.style.display="inline-flex";
-								livesUI.style.display="none";
-								uiCtrl.style.display="flex";
-								difMenu.style.display="inline-table";
-								loadbtn.style.display="inherit";
-								uiHP.style.display="none";
-								//Report score
-								uiCtrl.innerHTML = "Time survived "+Math.trunc((tick/30)/60)+"m "+Math.trunc((tick/30)%60)+"s / 3m 39s ";
+								vid.pause();
 								return;
 							}else{
 								lifeSFX.play();
@@ -325,9 +316,9 @@ function frameTimer() {
 			}
             timerId = requestAnimationFrame(updateTimer);
         } else {//End sequence, run at the end once
-			if(Math.trunc(score/dmgMult)>-89){
+			if(Math.trunc(score/dmgMult)>-119){
 				var finalScore = Math.trunc(score/10) + ((life*1000)*(dif*dif)) + ((health)*(dif*dif)) + 10000;
-				console.log(finalScore);
+				
 				uiCtrl.innerHTML = "HP lost = "+Math.trunc(score/10)+" : Lives bonus : "+life+"*1000*Difficulty bonus ("+dif*dif+") = "+(life*1000)*(dif*dif)+" ; HP bonus : "+health+ "*Difficulty bonus ("+dif*dif+") = "+ (health)*(dif*dif)+" : Almost perfect = 10000 : Final score = "+finalScore+"<br>";
 
 			}else{
@@ -335,16 +326,15 @@ function frameTimer() {
 				uiCtrl.innerHTML = "HP lost = "+Math.trunc(score/10)+" : Lives bonus : "+life+"*1000*Difficulty bonus ("+dif*dif+") = "+(life*1000)*(dif*dif)+" ; HP bonus = "+health+ "*Difficulty bonus ("+dif*dif+") = "+ (health)*(dif*dif)+" : Final score = "+finalScore+"<br>";
 			
 			}
-		
-			bgMusic.pause();
-			bgMusic.load();
+			victory=true;
+			vid.pause();
+			vid.load();
 			btn.style.display="inline-flex";
 			canvas.style.cursor = "auto";
 			menu.style.display="inline-flex";
 			livesUI.style.display="none";
 			uiCtrl.style.display="flex";
 			difMenu.style.display="inline-table";
-			loadbtn.style.display="inherit";
 			uiHP.style.display="none";
         }
     }
@@ -361,40 +351,42 @@ function startClock(){
 	
 }
 
-function loadAssets(){
-	var c=0;
-	var l=0;
-	const percentage = document.getElementById("loadPercent");
-	percentage.style.display= "initial";
-	const btn = document.getElementById("preloadbtn");
-	btn.disabled=true;
-	do{
-		
-		new Promise((resolve, reject) => {
-            const image = new Image();                    
-            image.onload = e => {
-				resolve(image);
-				l=l+1;
-				percentage.innerHTML = Math.trunc((l*100)/6574)+"%";
-            }
-            image.onerror = e => {
-                reject(Error("failed to load "+image.src))
-            }
-            image.src = "assets/bapple/frame_"+c+".png";
-			
-        })
-		c=c+1;
-		
-	}while(c<6574);
+function endGame(){
+	if(victory==true) return;
+	life=0;
+	health=-1;
+	const btn = document.getElementById("startbtn");
+	const livesUI= document.getElementById("livesPanel");
+	const menu = document.getElementById("mainMenu");
+	const uiCtrl = document.getElementById("GameUI");
+	const difMenu = document.getElementById("difSelect");
+	const uiHP = document.getElementById("uiHP");
+	const dedSFX = new Audio("assets/audio/death.mp3");
+	vid.load();
+	dedSFX.play();
+	//Show main menu again and hide game UI
+	canvas.style.cursor = "auto";
+	menu.style.display="inline-flex";
+	btn.style.display="inline-flex";
+	livesUI.style.display="none";
+	uiCtrl.style.display="flex";
+	difMenu.style.display="inline-table";
+	uiHP.style.display="none";
+	//Report score
+	uiCtrl.innerHTML = "Time survived "+Math.trunc((tick/30)/60)+"m "+Math.trunc((tick/30)%60)+"s / 3m 39s ";
 
 }
 
 function getCursor(e){
-	canvas = document.getElementById("gameFrame");
-	rect = canvas.getBoundingClientRect();
+	
     cX=e.clientX- rect.left;
     cY=e.clientY- Math.floor(rect.top);
+}
 
+function getTouch(e){
+	cX=e.touches[0].screenX - rect.left;
+	cY=e.touches[0].screenY - Math.floor(rect.top);
+	rect = canvas.getBoundingClientRect();
 }
 
 
@@ -405,7 +397,9 @@ window.onload = async function startup(){
 async function iniGame(){
 	canvas = document.getElementById("gameFrame");
 	ctx = document.getElementById("gameFrame").getContext("2d");
-	console.log(window.innerHeight);
+	vid = document.getElementById("videoPanel");
+	vid.loop = false;
+	//console.log(window.innerHeight);
 	if(window.innerHeight<360){
 	var textUI = document.getElementById("GameUI");
 	textUI.innerHTML="WARNING ,Your display/window may have issues due to its size!<br>Is recomended that your window is at least 480wx360h";
@@ -414,7 +408,7 @@ async function iniGame(){
 	var canvasW=canvasH*1.33333333;
 	canvas.width=canvasW;
 	canvas.height=canvasH;
-	console.log(canvas.height);
+	//console.log(canvas.height);
 			new Promise((resolve, reject) => {
             const image2 = new Image();                    
             image2.onload = e => {
@@ -431,13 +425,11 @@ async function iniGame(){
 
 </HEAD>
 <BODY>
-<source src="assets/audio/BadApple.mp3" />
 <source src="assets/audio/spark.mp3" />
 <source src="assets/audio/glass.mp3" />
 <source src="assets/audio/death.mp3" />
 
-<div class="helptext" style="float:right" ><button id="preloadbtn" style="float:right" onclick="loadAssets()">Preload assets</button><span class="tooltip">Can help if the game is lagging<br>May take a while to load<br>Specialy on HDDs</span></div>
-<div id="loadPercent" style="float:right;display:none">0%</div>
+
 <button id="startbtn" onclick="startClock()">Start</button><div style="float:left;" id="GameUI">Avoid touching the black parts of the video with your cursor</div>
 
 <div id="mainMenu" style="display: inline-flex;text-align:right">
@@ -461,7 +453,8 @@ async function iniGame(){
 
 <div class="container screen">
 
-<canvas style="padding-left: 0;padding-right: 0;margin-left: auto;margin-right: auto;display: block;" class="item game" id="gameFrame" onmousemove="getCursor(event)" ></canvas>
+<canvas style="padding-left: 0;padding-right: 0;margin-left: auto;margin-right: auto;display: block;touch-action:none;" class="item game" id="gameFrame" ontouchmove="getTouch(event)" onmousemove="getCursor(event)"></canvas>
+<video style="display:none" class="GameScreen" onpause="endGame();" src="assets/audio/BadApple.mp4" id="videoPanel" ></video>
 
 <form class="difMenu" id="difSelect">
 
@@ -475,7 +468,8 @@ async function iniGame(){
   <label class="difOption" for="lunatic">Lunatic</label><br>
   <input type="radio" id="extra" name="dificulty" value="5">
   <label class="difOption" for="extra">Extra</label><br>
-
+  <input type="radio" id="phanthasm" name="dificulty" value="6">
+  <label class="difOption" for="phanthasm">Phanthasm</label><br>
 </form>
 
 </div>
