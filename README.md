@@ -10,7 +10,7 @@ In the releases folder has included a minimal http server so you can run the gam
    
    **OR You can also use any form of HTTP server of your preference if you have avalible any tool that supports it, such as python, Node JS, PHP , etc...**
   - in this case, Launch your preffered server under the folder `\BadAppleTheGameTheMovie\BadAppleJS` instead
-  - This is MANDATORY for any **mobile** device, i recommend you using node.js on termux
+  - This is MANDATORY for any **mobile** device, i recommend you using node.js on termux (It is to note that on **Firefox android** the game will NOT run due to https://bugzilla.mozilla.org/show_bug.cgi?id=1526207 , you will need to use any chronium based browser or safari)
 2. if the browser doesn't opens automatically, open it manually, and go to the mentioned URL
 3. You can either CTRL+C or close the command prompt once you closed the game on the webpage
 
