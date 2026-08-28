@@ -104,6 +104,7 @@ body {
 let ctx;
 let canvas;
 let rect;
+let hitbox;
 
 let cX;
 let cY;
@@ -157,9 +158,7 @@ function frameTimer() {
 	const soundIsOff = document.querySelector('input[name=dmgSound]').checked;
 	const cursorHPIsOff = document.querySelector('input[name=cursorHP]').checked;
 	//Renderers/Images
-	const drawFrame = new Image();
-	const hitbox = new Image();
-	hitbox.src= "/assets/hitbox.png";
+
 	//Show UI
 
 	if(textUI==true){
@@ -409,16 +408,18 @@ async function iniGame(){
 	canvas.width=canvasW;
 	canvas.height=canvasH;
 	//console.log(canvas.height);
-			new Promise((resolve, reject) => {
-            const image2 = new Image();                    
-            image2.onload = e => {
-				resolve(image2);
-            }
-            image2.onerror = e => {
-                reject(Error("failed to load "+image2.src))
-            }
-            image2.src = "assets/hitbox.png";
-        })
+	new Promise((resolve, reject) => {
+        hitbox = new Image();                    
+        hitbox.onload = e => {
+			resolve(hitbox);
+			//console.log("loaded");
+        }
+        hitbox.onerror = e => {
+            reject(Error("failed to load "+hitbox.src))
+        }
+        hitbox.src = "assets/hitbox.png";
+    })
+	
 }
 
 </script>
@@ -454,7 +455,7 @@ async function iniGame(){
 <div class="container screen">
 
 <canvas style="padding-left: 0;padding-right: 0;margin-left: auto;margin-right: auto;display: block;touch-action:none;" class="item game" id="gameFrame" ontouchmove="getTouch(event)" onmousemove="getCursor(event)"></canvas>
-<video style="display:none" class="GameScreen" onpause="endGame();" src="assets/audio/BadApple.mp4" id="videoPanel" ></video>
+<video preload="auto" style="display:none" class="GameScreen" onpause="endGame();" src="assets/audio/BadApple.mp4" id="videoPanel" ></video>
 
 <form class="difMenu" id="difSelect">
 
