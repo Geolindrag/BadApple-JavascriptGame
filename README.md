@@ -5,6 +5,8 @@ This game due to the usage of canvases, Requires to be launched on a local serve
 
 In the releases folder has included a minimal http server so you can run the game
 
+You can play this witjout installing anything on itch.io https://imperatrixdrakkya.itch.io/bad-apple-the-movie-the-game
+
 ## Running the game locally
 1. To start it, run "BasicHTTPServer.exe" (or run in the terminal `./BasicHTTPServer` on linux) it will open a command prompt that will run the server, and your browser in the webpage `http://localhost:8000/index.html`
    
